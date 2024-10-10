@@ -1,0 +1,202 @@
+-- Create Screen GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Create the main Frame for the UI
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 120)
+frame.Position = UDim2.new(0.05, 0, 0.05, 0)
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.BackgroundTransparency = 0 -- No transparency
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+-- Add a Title Label
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Text = "Ben 10 "
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 18
+titleLabel.Parent = frame
+
+-- Add a button labeled "Kiss Others"
+local kissButton = Instance.new("TextButton")
+kissButton.Size = UDim2.new(0, 180, 0, 25)
+kissButton.Position = UDim2.new(0, 10, 0, 40)
+kissButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+kissButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+kissButton.Text = "Kiss Others"
+kissButton.Font = Enum.Font.SourceSansBold
+kissButton.TextSize = 18
+kissButton.Parent = frame
+
+-- Create the checkbox for the Kiss Others button
+local checkbox = Instance.new("Frame")
+checkbox.Size = UDim2.new(0, 15, 0, 15)
+checkbox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+checkbox.BorderSizePixel = 2
+checkbox.Position = UDim2.new(1.13, -30, 0.78, -7)
+checkbox.AnchorPoint = Vector2.new(1, 0.5)
+checkbox.Parent = kissButton
+
+local checkmark = Instance.new("TextLabel")
+checkmark.Size = UDim2.new(1, 0, 1, 0)
+checkmark.BackgroundTransparency = 1
+checkmark.Text = "✔"
+checkmark.TextColor3 = Color3.fromRGB(255, 255, 255)
+checkmark.Font = Enum.Font.SourceSansBold
+checkmark.TextSize = 12
+checkmark.Visible = false
+checkmark.Parent = checkbox
+
+-- Initialize the state for the Kiss Others button
+local isKissActive = false
+local heartbeatConnection -- To store the connection to heartbeat
+local player = game.Players.LocalPlayer
+
+-- Function to stop the heartbeat connection
+local function stopHeartbeat()
+    if heartbeatConnection then
+        heartbeatConnection:Disconnect()
+        heartbeatConnection = nil
+    end
+end
+
+-- Function to start the kiss action
+local function startKissAction()
+    print("Kiss Others is activated")
+
+    local function getNearestPlayer(player)
+        local nearestPlayer = nil
+        local shortestDistance = math.huge
+        for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+            if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local distance = (player.Character.HumanoidRootPart.Position - otherPlayer.Character.HumanoidRootPart.Position).magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    nearestPlayer = otherPlayer
+                end
+            end
+        end
+        return nearestPlayer, shortestDistance
+    end
+
+    local function moveToPlayer(localPlayer, targetPlayer)
+        local humanoid = localPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            humanoid:MoveTo(targetPlayer.Character.HumanoidRootPart.Position)
+        end
+    end
+
+    local function meleeAttack(localPlayer, targetPlayer)
+        local localHRP = localPlayer.Character.HumanoidRootPart
+        local targetHRP = targetPlayer.Character.HumanoidRootPart
+        local attackRange = 5
+
+        local distance = (localHRP.Position - targetHRP.Position).magnitude
+        if distance <= attackRange then
+            print("Melee Attack!")
+        end
+    end
+
+    -- Run this continuously
+    heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        local nearestPlayer, distance = getNearestPlayer(player)
+        if nearestPlayer then
+            moveToPlayer(player, nearestPlayer)
+            meleeAttack(player, nearestPlayer)
+        end
+    end)
+
+    -- Show checkmark and change checkbox background color
+    checkmark.Visible = true
+    checkbox.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+end
+
+-- Function to create rainbow color
+local function rainbowColor(frequency, i)
+    local red = math.sin(frequency * i + 0) * 127 + 128
+    local green = math.sin(frequency * i + 2) * 127 + 128
+    local blue = math.sin(frequency * i + 4) * 127 + 128
+    return Color3.fromRGB(red, green, blue)
+end
+
+-- Function to start the RGB color effect
+local function startRGBEffect(button)
+    local i = 0
+    local frequency = 0.2 -- Frequency of color change
+
+    while button.TextColor3 ~= Color3.fromRGB(255, 255, 255) do
+        i = i + 0.1
+        local newColor = rainbowColor(frequency, i)
+        button.TextColor3 = newColor
+        wait(0.05) -- Update the color smoothly
+    end
+end
+
+-- Toggle RGB effect on button click
+local isRGBActive = false
+kissButton.MouseButton1Click:Connect(function()
+    isRGBActive = not isRGBActive
+
+    if isRGBActive then
+        -- Start the RGB color effect
+        kissButton.TextColor3 = Color3.fromRGB(255, 0, 0) -- Start with red
+        spawn(function()
+            startRGBEffect(kissButton)
+        end)
+    else
+        -- Stop the RGB effect and reset color to white
+        kissButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+end)
+
+-- Button click event
+kissButton.MouseButton1Click:Connect(function()
+    isKissActive = not isKissActive
+
+    if isKissActive then
+        startKissAction()
+    else
+        print("Kiss Others is deactivated")
+        stopHeartbeat() -- Stop the heartbeat when deactivating the action
+
+        -- Hide checkmark and revert checkbox background color
+        checkmark.Visible = false
+        checkbox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    end
+end)
+
+-- Add a Minimize button
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Size = UDim2.new(0, 30, 0, 30)
+minimizeButton.Position = UDim2.new(1, -35, 0, 0)
+minimizeButton.BackgroundTransparency = 1
+minimizeButton.Text = "-"
+minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeButton.Font = Enum.Font.SourceSansBold
+minimizeButton.TextSize = 28
+minimizeButton.Parent = frame
+
+-- Toggle frame visibility and buttons when the minimize button is clicked
+local isMinimized = false
+minimizeButton.MouseButton1Click:Connect(function()
+    if not isMinimized then
+        -- Minimize the frame (hide the button but keep the title)
+        frame.Size = UDim2.new(0, 200, 0, 30)
+        kissButton.Visible = false
+        checkbox.Visible = false
+    else
+        -- Restore the frame (show contents)
+        frame.Size = UDim2.new(0, 200, 0, 120)
+        kissButton.Visible = true
+        checkbox.Visible = true
+    end
+    isMinimized = not isMinimized
+end)
